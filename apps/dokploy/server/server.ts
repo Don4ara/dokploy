@@ -27,6 +27,7 @@ config({ path: ".env" });
 const PORT = Number.parseInt(process.env.PORT || "3000", 10);
 const HOST = process.env.HOST || "0.0.0.0";
 const dev = process.env.NODE_ENV !== "production";
+const desktopOnly = process.env.DOKPLOY_DESKTOP_ONLY === "true";
 
 // Initialize critical directories and Traefik config BEFORE Next.js starts
 // This prevents race conditions with the install script
@@ -43,6 +44,15 @@ void app.prepare().then(async () => {
 	try {
 		console.log("Running DokployVersion: ", packageInfo.version);
 		const server = http.createServer((req, res) => {
+			if (desktopOnly && !req.url?.startsWith("/api/")) {
+				res.writeHead(404, { "content-type": "application/json" });
+				res.end(
+					JSON.stringify({
+						error: "Dokploy web UI is disabled; use Dokploy Desktop",
+					}),
+				);
+				return;
+			}
 			handle(req, res);
 		});
 
