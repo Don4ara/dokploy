@@ -25,6 +25,16 @@ async function authRequest<T>(path: string, init?: RequestInit) {
 
 export const authClient = {
 	getSession: () => authRequest<AuthSession | null>("get-session"),
+	signUp: (input: {
+		email: string;
+		password: string;
+		name: string;
+		lastName: string;
+	}) =>
+		authRequest<unknown>("sign-up/email", {
+			method: "POST",
+			body: JSON.stringify(input),
+		}),
 	signIn: (email: string, password: string) =>
 		authRequest<unknown>("sign-in/email", {
 			method: "POST",
@@ -92,6 +102,9 @@ const mutate = <T = unknown>(path: string, input?: unknown) =>
 	client.mutation(path, input) as Promise<T>;
 
 export const api = {
+	settings: {
+		hasAdmin: { query: () => query<boolean>("settings.hasAdmin") },
+	},
 	project: {
 		all: { query: () => query<Project[]>("project.all") },
 	},

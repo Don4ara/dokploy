@@ -25,6 +25,7 @@ export function App() {
 	const [backend, setBackend] = useState("http://localhost:3000");
 	const [connected, setConnected] = useState(false);
 	const [session, setSession] = useState<AuthSession | null>(null);
+	const [hasAdmin, setHasAdmin] = useState(true);
 	const [projects, setProjects] = useState<Project[]>([]);
 	const [selected, setSelected] = useState<ServiceRef | null>(null);
 	const [details, setDetails] = useState<ServiceDetails | null>(null);
@@ -39,8 +40,13 @@ export function App() {
 		const response = await fetch("/api/health");
 		if (!response.ok)
 			throw new Error(`Dokploy health check returned ${response.status}`);
+		const [currentSession, adminPresent] = await Promise.all([
+			authClient.getSession(),
+			api.settings.hasAdmin.query(),
+		]);
+		setSession(currentSession);
+		setHasAdmin(adminPresent);
 		setConnected(true);
-		setSession(await authClient.getSession());
 	}, []);
 
 	const loadProjects = useCallback(async () => {
@@ -104,6 +110,31 @@ export function App() {
 				String(form.get("email")),
 				String(form.get("password")),
 			);
+			setSession(await authClient.getSession());
+		} catch (reason) {
+			setError(errorMessage(reason));
+		} finally {
+			setBusy(false);
+		}
+	}
+
+	async function register(event: FormEvent<HTMLFormElement>) {
+		event.preventDefault();
+		setBusy(true);
+		setError("");
+		const form = new FormData(event.currentTarget);
+		const password = String(form.get("password"));
+		try {
+			if (password !== String(form.get("confirmPassword"))) {
+				throw new Error("Passwords do not match");
+			}
+			await authClient.signUp({
+				name: String(form.get("name")),
+				lastName: String(form.get("lastName")),
+				email: String(form.get("email")),
+				password,
+			});
+			setHasAdmin(true);
 			setSession(await authClient.getSession());
 		} catch (reason) {
 			setError(errorMessage(reason));
@@ -257,9 +288,21 @@ export function App() {
 	if (!session) {
 		return (
 			<main className="centered">
-				<form className="panel auth" onSubmit={signIn}>
+				<form className="panel auth" onSubmit={hasAdmin ? signIn : register}>
 					<p className="eyebrow">{backend}</p>
-					<h1>Sign in</h1>
+					<h1>{hasAdmin ? "Sign in" : "Create administrator"}</h1>
+					{!hasAdmin && (
+						<>
+							<label>
+								First name
+								<input name="name" autoComplete="given-name" required />
+							</label>
+							<label>
+								Last name
+								<input name="lastName" autoComplete="family-name" required />
+							</label>
+						</>
+					)}
 					<label>
 						Email
 						<input name="email" type="email" autoComplete="email" required />
@@ -269,13 +312,32 @@ export function App() {
 						<input
 							name="password"
 							type="password"
-							autoComplete="current-password"
+							autoComplete={hasAdmin ? "current-password" : "new-password"}
+							minLength={hasAdmin ? undefined : 8}
 							required
 						/>
 					</label>
+					{!hasAdmin && (
+						<label>
+							Confirm password
+							<input
+								name="confirmPassword"
+								type="password"
+								autoComplete="new-password"
+								minLength={8}
+								required
+							/>
+						</label>
+					)}
 					{error && <p className="error">{error}</p>}
 					<button disabled={busy} type="submit">
-						{busy ? "Signing in…" : "Sign in"}
+						{busy
+							? hasAdmin
+								? "Signing in…"
+								: "Creating…"
+							: hasAdmin
+								? "Sign in"
+								: "Create administrator"}
 					</button>
 					<button
 						className="ghost"

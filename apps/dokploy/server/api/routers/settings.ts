@@ -19,6 +19,7 @@ import {
 	getUpdateData,
 	getWebServerSettings,
 	IS_CLOUD,
+	isAdminPresent,
 	parseRawConfig,
 	paths,
 	prepareEnvironmentVariables,
@@ -82,6 +83,7 @@ import {
 } from "../trpc";
 
 export const settingsRouter = createTRPCRouter({
+	hasAdmin: publicProcedure.query(() => isAdminPresent()),
 	getWebServerSettings: protectedProcedure.query(async () => {
 		if (IS_CLOUD) {
 			return null;
