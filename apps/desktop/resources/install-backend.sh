@@ -2,7 +2,7 @@
 set -eu
 
 DOCKER_VERSION="28.5.0"
-DOKPLOY_IMAGE="${DOKPLOY_IMAGE:-dokploy/dokploy:v0.30.6}"
+DOKPLOY_IMAGE="${DOKPLOY_IMAGE:-ghcr.io/don4ara/dokploy-backend:latest}"
 ADVERTISE_ADDR="${ADVERTISE_ADDR:?ADVERTISE_ADDR is required}"
 
 if [ "$(id -u)" != "0" ]; then
@@ -15,7 +15,7 @@ if [ "$(uname -s)" != "Linux" ] || [ -f /.dockerenv ]; then
 	exit 1
 fi
 
-echo "1/7 Checking ports"
+echo "1/8 Checking ports"
 if ! docker service inspect dokploy >/dev/null 2>&1; then
 	for port in 80 443 3000; do
 		if ss -tuln | grep -q ":${port} "; then
@@ -25,19 +25,22 @@ if ! docker service inspect dokploy >/dev/null 2>&1; then
 	done
 fi
 
-echo "2/7 Installing Docker"
+echo "2/8 Installing Docker"
 if ! command -v docker >/dev/null 2>&1; then
 	curl -fsSL https://get.docker.com | sh -s -- --version "$DOCKER_VERSION"
 fi
 
-echo "3/7 Initializing Docker Swarm"
+echo "3/8 Pulling ${DOKPLOY_IMAGE}"
+docker pull "$DOKPLOY_IMAGE"
+
+echo "4/8 Initializing Docker Swarm"
 if [ "$(docker info --format '{{.Swarm.LocalNodeState}}' 2>/dev/null || true)" != "active" ]; then
 	docker swarm init --advertise-addr "$ADVERTISE_ADDR"
 fi
 docker network inspect dokploy-network >/dev/null 2>&1 || \
 	docker network create --driver overlay --attachable dokploy-network
 
-echo "4/7 Creating secrets and storage"
+echo "5/8 Creating secrets and storage"
 mkdir -p /etc/dokploy
 chmod 700 /etc/dokploy
 if ! docker secret inspect dokploy_postgres_password >/dev/null 2>&1; then
@@ -48,7 +51,7 @@ if ! docker secret inspect dokploy_auth_secret >/dev/null 2>&1; then
 	openssl rand -hex 32 | docker secret create dokploy_auth_secret -
 fi
 
-echo "5/7 Starting PostgreSQL"
+echo "6/8 Starting PostgreSQL"
 if ! docker service inspect dokploy-postgres >/dev/null 2>&1; then
 	docker service create \
 		--name dokploy-postgres \
@@ -62,10 +65,11 @@ if ! docker service inspect dokploy-postgres >/dev/null 2>&1; then
 		postgres:16
 fi
 
-echo "6/7 Starting Dokploy API backend"
+echo "7/8 Starting Dokploy API backend"
 if docker service inspect dokploy >/dev/null 2>&1; then
 	docker service update \
 		--image "$DOKPLOY_IMAGE" \
+		--force \
 		--env-add DOKPLOY_DESKTOP_ONLY=true \
 		dokploy
 else
@@ -88,7 +92,7 @@ else
 		"$DOKPLOY_IMAGE"
 fi
 
-echo "7/7 Starting Traefik"
+echo "8/8 Starting Traefik"
 attempt=0
 while [ ! -f /etc/dokploy/traefik/traefik.yml ] && [ "$attempt" -lt 30 ]; do
 	attempt=$((attempt + 1))
