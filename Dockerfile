@@ -1,4 +1,6 @@
 # syntax=docker/dockerfile:1
+ARG DOKPLOY_DESKTOP_ONLY=false
+
 FROM node:24.4.0-slim AS base
 ENV PNPM_HOME="/pnpm"
 ENV PATH="$PNPM_HOME:$PATH"
@@ -6,6 +8,7 @@ RUN corepack enable
 RUN corepack prepare pnpm@10.22.0 --activate
 
 FROM base AS build
+ARG DOKPLOY_DESKTOP_ONLY
 COPY . /usr/src/app
 WORKDIR /usr/src/app
 
@@ -18,6 +21,9 @@ RUN --mount=type=cache,id=pnpm,target=/pnpm/store pnpm install --frozen-lockfile
 
 ENV NODE_ENV=production
 RUN pnpm --filter=@dokploy/server build
+RUN if [ "$DOKPLOY_DESKTOP_ONLY" = "true" ]; then \
+	find apps/dokploy/pages -mindepth 1 -maxdepth 1 ! -name api -exec rm -rf {} +; \
+	fi
 RUN pnpm --filter=./apps/dokploy run build
 
 RUN pnpm --filter=./apps/dokploy --prod deploy --legacy /prod/dokploy
@@ -26,10 +32,12 @@ RUN cp -R /usr/src/app/apps/dokploy/.next /prod/dokploy/.next
 RUN cp -R /usr/src/app/apps/dokploy/dist /prod/dokploy/dist
 
 FROM base AS dokploy
+ARG DOKPLOY_DESKTOP_ONLY
 WORKDIR /app
 
 # Set production
 ENV NODE_ENV=production
+ENV DOKPLOY_DESKTOP_ONLY=$DOKPLOY_DESKTOP_ONLY
 
 RUN apt-get update && apt-get install -y tini curl unzip zip apache2-utils iproute2 rsync git-lfs && git lfs install && rm -rf /var/lib/apt/lists/*
 
