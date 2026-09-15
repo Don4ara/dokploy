@@ -6,6 +6,9 @@
 		"packages/*"
 	],
 	"scripts": {
+		"desktop:dev": "pnpm --filter=@dokploy/desktop run dev",
+		"desktop:build": "pnpm --filter=@dokploy/desktop run build",
+		"desktop:typecheck": "pnpm --filter=@dokploy/desktop run typecheck",
 		"dokploy:setup": "pnpm --filter=dokploy run setup",
 		"dokploy:dev": "pnpm --filter=dokploy run dev",
 		"dokploy:build": "pnpm --filter=dokploy run build",

@@ -1,0 +1,35 @@
+{
+	"name": "@dokploy/desktop",
+	"version": "0.1.0",
+	"private": true,
+	"main": "dist/electron/main.js",
+	"scripts": {
+		"dev": "pnpm run build:main && electron dist/electron/main.js --dev",
+		"build": "pnpm run build:main && vite build",
+		"build:main": "esbuild src/main.ts src/preload.ts --bundle --platform=node --format=cjs --loader:.sh=text --external:electron --external:ssh2 --external:vite --outdir=dist/electron",
+		"test": "node --import tsx src/install-validation.test.ts",
+		"typecheck": "tsc --noEmit"
+	},
+	"dependencies": {
+		"@trpc/client": "^11.10.0",
+		"react": "19.2.7",
+		"react-dom": "19.2.7",
+		"ssh2": "~1.16.0",
+		"superjson": "^2.2.2"
+	},
+	"devDependencies": {
+		"@types/node": "^24.4.0",
+		"@types/react": "^19.2.0",
+		"@types/react-dom": "^19.2.0",
+		"@types/ssh2": "1.15.1",
+		"electron": "44.3.0",
+		"esbuild": "0.20.2",
+		"tsx": "^4.22.4",
+		"typescript": "^7.0.2",
+		"vite": "7.3.1"
+	},
+	"engines": {
+		"node": "^24.4.0",
+		"pnpm": ">=10.22.0"
+	}
+}

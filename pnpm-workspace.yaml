@@ -1,5 +1,6 @@
 packages:
   - "apps/api"
+  - "apps/desktop"
   - "apps/dokploy"
   - "apps/schedules"
   - "packages/server"
@@ -9,5 +10,4 @@ packages:
 # Disabled for now — kept breaking builds on unrelated fresh transitive deps
 # (see PR #4679). Re-enable when there's a per-scope threshold or exclude list.
 # minimumReleaseAge: 1440
-
 
