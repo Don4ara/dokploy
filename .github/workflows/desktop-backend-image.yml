@@ -2,7 +2,7 @@ name: Desktop backend image
 
 on:
   push:
-    branches: [main]
+    branches: [main, canary]
     tags: ["v*"]
   pull_request:
     branches: [main]
@@ -51,6 +51,7 @@ jobs:
           images: ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}
           tags: |
             type=raw,value=latest,enable={{is_default_branch}}
+            type=ref,event=branch
             type=ref,event=tag
             type=sha
 

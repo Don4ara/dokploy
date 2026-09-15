@@ -13,6 +13,7 @@ permissions:
 
 jobs:
   docker-amd:
+    if: github.repository == 'Dokploy/dokploy'
     runs-on: ubuntu-22.04
     steps:
       - name: Checkout
@@ -55,6 +56,7 @@ jobs:
           push: true
           tags: ${{ steps.meta.outputs.tags }}
   docker-arm:
+    if: github.repository == 'Dokploy/dokploy'
     runs-on: ubuntu-24.04-arm
     steps:
       - name: Checkout
@@ -99,6 +101,7 @@ jobs:
           tags: ${{ steps.meta.outputs.tags }}
 
   combine-manifests:
+    if: github.repository == 'Dokploy/dokploy'
     needs: [docker-amd, docker-arm]
     runs-on: ubuntu-latest
     steps:
@@ -144,8 +147,8 @@ jobs:
           fi
 
   generate-release:
+    if: github.repository == 'Dokploy/dokploy' && github.ref == 'refs/heads/main'
     needs: [combine-manifests]
-    if: github.ref == 'refs/heads/main'
     runs-on: ubuntu-latest
     permissions:
       contents: write
@@ -190,8 +193,8 @@ jobs:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
   sync-version:
+    if: github.repository == 'Dokploy/dokploy' && github.ref == 'refs/heads/main'
     needs: [generate-release]
-    if: github.ref == 'refs/heads/main'
     runs-on: ubuntu-latest
     env:
       NPM_VERSION: ${{ needs.generate-release.outputs.npm_version }}
