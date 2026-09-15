@@ -16,12 +16,10 @@ RUN apt-get update && apt-get install -y python3 make g++ git python3-pip pkg-co
 
 # Install dependencies
 COPY package.json pnpm-lock.yaml pnpm-workspace.yaml ./
-COPY apps/api/package.json ./apps/api/package.json
-COPY apps/desktop/package.json ./apps/desktop/package.json
 COPY apps/dokploy/package.json ./apps/dokploy/package.json
-COPY apps/schedules/package.json ./apps/schedules/package.json
 COPY packages/server/package.json ./packages/server/package.json
-RUN --mount=type=cache,id=pnpm-${TARGETARCH},target=/pnpm/store pnpm install --frozen-lockfile
+RUN --mount=type=cache,id=pnpm-${TARGETARCH},target=/pnpm/store \
+	pnpm --filter='{apps/dokploy}...' install --frozen-lockfile
 
 COPY . .
 
@@ -32,7 +30,8 @@ RUN pnpm --filter=@dokploy/server build
 RUN if [ "$DOKPLOY_DESKTOP_ONLY" = "true" ]; then \
 	find apps/dokploy/pages -mindepth 1 -maxdepth 1 ! -name api -exec rm -rf {} +; \
 	fi
-RUN pnpm --filter=./apps/dokploy run build
+RUN --mount=type=cache,id=next-${TARGETARCH},target=/usr/src/app/apps/dokploy/.next/cache \
+	pnpm --filter=./apps/dokploy run build
 
 RUN pnpm --filter=./apps/dokploy --prod deploy --legacy /prod/dokploy
 
@@ -48,18 +47,6 @@ ENV NODE_ENV=production
 ENV DOKPLOY_DESKTOP_ONLY=$DOKPLOY_DESKTOP_ONLY
 
 RUN apt-get update && apt-get install -y tini curl unzip zip apache2-utils iproute2 rsync git-lfs && git lfs install && rm -rf /var/lib/apt/lists/*
-
-# Copy only the necessary files
-COPY --from=build /prod/dokploy/.next ./.next
-COPY --from=build /prod/dokploy/dist ./dist
-COPY --from=build /prod/dokploy/next.config.mjs ./next.config.mjs
-COPY --from=build /prod/dokploy/public ./public
-COPY --from=build /prod/dokploy/package.json ./package.json
-COPY --from=build /prod/dokploy/drizzle ./drizzle
-COPY .env.production ./.env
-COPY --from=build /prod/dokploy/components.json ./components.json
-COPY --from=build /prod/dokploy/node_modules ./node_modules
-
 
 # Install docker
 RUN curl -fsSL https://get.docker.com -o get-docker.sh && sh get-docker.sh --version 28.5.2 && rm get-docker.sh && curl https://rclone.org/install.sh | bash
@@ -79,6 +66,17 @@ RUN curl -sSL https://railpack.com/install.sh | bash
 
 # Install buildpacks
 COPY --from=buildpacksio/pack:0.39.1 /usr/local/bin/pack /usr/local/bin/pack
+
+# Copy only the necessary files
+COPY --from=build /prod/dokploy/.next ./.next
+COPY --from=build /prod/dokploy/dist ./dist
+COPY --from=build /prod/dokploy/next.config.mjs ./next.config.mjs
+COPY --from=build /prod/dokploy/public ./public
+COPY --from=build /prod/dokploy/package.json ./package.json
+COPY --from=build /prod/dokploy/drizzle ./drizzle
+COPY .env.production ./.env
+COPY --from=build /prod/dokploy/components.json ./components.json
+COPY --from=build /prod/dokploy/node_modules ./node_modules
 
 EXPOSE 3000
 
