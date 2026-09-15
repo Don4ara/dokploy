@@ -9,13 +9,21 @@ RUN corepack prepare pnpm@10.22.0 --activate
 
 FROM base AS build
 ARG DOKPLOY_DESKTOP_ONLY
-COPY . /usr/src/app
+ARG TARGETARCH
 WORKDIR /usr/src/app
 
 RUN apt-get update && apt-get install -y python3 make g++ git python3-pip pkg-config libsecret-1-dev && rm -rf /var/lib/apt/lists/*
 
 # Install dependencies
-RUN --mount=type=cache,id=pnpm,target=/pnpm/store pnpm install --frozen-lockfile
+COPY package.json pnpm-lock.yaml pnpm-workspace.yaml ./
+COPY apps/api/package.json ./apps/api/package.json
+COPY apps/desktop/package.json ./apps/desktop/package.json
+COPY apps/dokploy/package.json ./apps/dokploy/package.json
+COPY apps/schedules/package.json ./apps/schedules/package.json
+COPY packages/server/package.json ./packages/server/package.json
+RUN --mount=type=cache,id=pnpm-${TARGETARCH},target=/pnpm/store pnpm install --frozen-lockfile
+
+COPY . .
 
 # Deploy only the dokploy app
 

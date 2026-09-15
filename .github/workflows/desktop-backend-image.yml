@@ -65,5 +65,5 @@ jobs:
           build-args: DOKPLOY_DESKTOP_ONLY=true
           tags: ${{ steps.meta.outputs.tags }}
           labels: ${{ steps.meta.outputs.labels }}
-          cache-from: type=gha
-          cache-to: type=gha,mode=max
+          cache-from: type=gha,scope=desktop-backend
+          cache-to: type=gha,scope=desktop-backend,mode=max
