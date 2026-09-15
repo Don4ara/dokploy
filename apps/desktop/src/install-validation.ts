@@ -52,3 +52,13 @@ export function validateInstallInput(value: unknown): ServerInstallInput {
 export function backendOrigin(host: string) {
 	return `http://${host.includes(":") ? `[${host}]` : host}:3000`;
 }
+
+export function remoteCommandError(code: number | null, output: string) {
+	const detail = output
+		.trim()
+		.split(/\r?\n/)
+		.slice(-20)
+		.join("\n")
+		.slice(-4_000);
+	return `Remote command failed with exit code ${code ?? "unknown"}${detail ? `:\n\n${detail}` : ""}`;
+}

@@ -24,6 +24,7 @@ import type { ViteDevServer } from "vite";
 import installBackendScript from "../resources/install-backend.sh";
 import {
 	backendOrigin,
+	remoteCommandError,
 	type ServerCredentials,
 	validateInstallInput,
 	validateServerCredentials,
@@ -106,13 +107,7 @@ function execSsh(
 			stream.stderr.on("data", collect);
 			stream.once("close", (code: number | null) => {
 				if (code === 0) resolve(output);
-				else {
-					reject(
-						new Error(
-							`Remote command failed with exit code ${code ?? "unknown"}`,
-						),
-					);
-				}
+				else reject(new Error(remoteCommandError(code, output)));
 			});
 		});
 	});

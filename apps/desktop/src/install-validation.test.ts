@@ -1,6 +1,7 @@
 import assert from "node:assert/strict";
 import {
 	backendOrigin,
+	remoteCommandError,
 	validateInstallInput,
 	validateServerCredentials,
 } from "./install-validation";
@@ -32,6 +33,13 @@ assert.throws(() =>
 		expectedFingerprint: "unverified",
 		image: "image; reboot",
 	}),
+);
+assert.match(
+	remoteCommandError(
+		1,
+		"3/8 Pulling image\nunauthorized: authentication required\n",
+	),
+	/exit code 1:\n\n3\/8 Pulling image\nunauthorized/,
 );
 
 console.log("install validation: ok");
